@@ -21,7 +21,7 @@ class Loader(object):
         self.dataset_path = dataset_path
         self._load()
 
-    def parser(self, entries : List[str], dataset : str):
+    def parser(self, entries : List[str], dataset : str) -> np.ndarray:
         entries = entries[1:] #skipping headers
         data = list()
         if dataset == "Chromium":
@@ -39,7 +39,18 @@ class Loader(object):
                 except:
                     print(f"skipping entry -> [{entry[:1]}]")
         elif dataset == "OpenStack":
-            pass
+            for entry in entries:
+                breakpoint()
+                if len(entry) == 0:
+                    continue
+                try:
+                    comma_idxs = find_indices(entry, ",")
+                    text = entry[comma_idxs[0]+1:comma_idxs[-1]]
+                    security_bool = int(entry[comma_idxs[-1]+1:])
+                    data_entry = [text.strip(), security_bool]
+                    data.append(data_entry)
+                except:
+                    print(f"skipping entry -> [{entry[:1]}]")
         return np.array(data)
 
     def _combine(self, entries : List[str]):
@@ -49,6 +60,7 @@ class Loader(object):
         csv_files = glob.glob(os.path.join(self.dataset_path, '*.csv'))
         df_list = list()
         for csv in csv_files:
+            breakpoint()
             if csv.index("Chromium"):
                 with open(csv, 'rb') as f:
                     file_bytes = f.read()

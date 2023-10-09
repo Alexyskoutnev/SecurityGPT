@@ -1,0 +1,132 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+*.tmp
+*.swp
+
+# Environments
+venv/
+env/
+.venv/
+.venv3/
+.venv2/
+.venv35/
+.venv36/
+.venv37/
+.venv38/
+.venv39/
+.env
+.Python
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.sublime-workspace
+
+# Dependency management
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+*.db
+*.sqlite3
+*.db-shm
+*.db-wal
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# pyenv
+.python-version
+
+# celery beat schedule file
+celerybeat-schedule
+
+# SageMath parsed files
+*.sage.py
+
+# dotenv
+.env
+.env.*
+
+# virtualenv
+# .venv
+# venv
+ENV/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# profiling data
+profiling.*
+
+# pytest
+pytest_cache/
+
+# IPython
+.ipynb_checkpoints/
+profile_default/
+ipython_config.py
+
+# pyright
+.pyrightconfig.json
+
+# pipenv
+Pipfile
+Pipfile.lock
+
+# poetry
+#   Remove the comment below if you use poetry to manage your dependencies.
+#   #poetry.lock
+
+# pycodestyle
+.pydocstyle
+pycodestyle
+# add ignore for:
+# E402 - module level import not at top of file
+# W504 - line break after binary operator
+# D104 - Missing docstring in public package
+# D105 - Missing docstring in magic method
+# D106 - Missing docstring in public nested class
+# D107 - Missing docstring in __init__
+
+# PyInstaller
+__pyinstaller/

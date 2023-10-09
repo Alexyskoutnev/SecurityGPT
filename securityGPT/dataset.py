@@ -40,7 +40,6 @@ class Loader(object):
                     print(f"skipping entry -> [{entry[:1]}]")
         elif dataset == "OpenStack":
             for entry in entries:
-                breakpoint()
                 if len(entry) == 0:
                     continue
                 try:
@@ -51,26 +50,26 @@ class Loader(object):
                     data.append(data_entry)
                 except:
                     print(f"skipping entry -> [{entry[:1]}]")
-        return np.array(data)
+        return data
 
     def _combine(self, entries : List[str]):
         pass
 
     def _load(self):
         csv_files = glob.glob(os.path.join(self.dataset_path, '*.csv'))
-        df_list = list()
+        data_list = list()
         for csv in csv_files:
-            breakpoint()
-            if csv.index("Chromium"):
+            if "Chromium" in csv:
                 with open(csv, 'rb') as f:
                     file_bytes = f.read()
                     file_text = file_bytes.decode("utf-8", errors="ignore")
-                    entries = self.parser(file_text.split("\n"), "Chromium")
-            elif csv.index("OpenStack"):
+                    data_list.append(self.parser(file_text.split("\n"), "Chromium"))
+            elif "OpenStack" in csv:
                 with open(csv, 'rb') as f:
                     file_bytes = f.read()
                     file_text = file_bytes.decode("utf-8", errors="ignore")
-                    entries = self.parser(file_text.split("\n"), "OpenStack")
+                    data_list.append(self.parser(file_text.split("\n"), "OpenStack"))
+        breakpoint()
             
     def filter(self):
         raise NotImplemented

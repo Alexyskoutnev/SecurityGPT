@@ -1,0 +1,6 @@
+README.md
+setup.py
+securityGPT.egg-info/PKG-INFO
+securityGPT.egg-info/SOURCES.txt
+securityGPT.egg-info/dependency_links.txt
+securityGPT.egg-info/top_level.txt

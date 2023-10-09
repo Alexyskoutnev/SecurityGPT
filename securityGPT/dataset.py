@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 dataset_path = os.path.join("../data")
-encoding = "utf-8"  # Specify the correct encoding
+encoding = "utf-8"
 
 def find_indices(text : str , char : str):
     indices = []
@@ -53,7 +53,7 @@ class Loader(object):
         return data
 
     def _combine(self, entries : List[str]):
-        pass
+        return np.concatenate(entries)
 
     def _load(self):
         csv_files = glob.glob(os.path.join(self.dataset_path, '*.csv'))
@@ -69,7 +69,7 @@ class Loader(object):
                     file_bytes = f.read()
                     file_text = file_bytes.decode("utf-8", errors="ignore")
                     data_list.append(self.parser(file_text.split("\n"), "OpenStack"))
-        breakpoint()
+        self.data = self._combine(data_list)
             
     def filter(self):
         raise NotImplemented
@@ -82,4 +82,3 @@ class Loader(object):
 
 if __name__ == "__main__":
     loader = Loader(dataset_path)
-    breakpoint()

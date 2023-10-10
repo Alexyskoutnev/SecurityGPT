@@ -5,10 +5,14 @@ from typing import Optional, Tuple, Union, List
 
 import numpy as np
 import pandas as pd
+import nltk
+from nltk.corpus import stopwords
 from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 dataset_path = os.path.join("../data")
 encoding = "utf-8"
+nltk.download('punkt')
 
 def find_indices(text : str , char : str) -> List[int]:
     """
@@ -28,7 +32,7 @@ def find_indices(text : str , char : str) -> List[int]:
     return indices
 
 class Loader(object):
-    def __init__(self, dataset_path : str, train_size: float = 0.8) -> None:
+    def __init__(self, dataset_path : str, train_size: float = 0.8, size: Optional[int] = 0) -> None:
         """
         Initialize the Loader object.
 
@@ -36,9 +40,14 @@ class Loader(object):
             dataset_path (str): The path to the dataset.
             train_size (float): The proportion of the data to include in the training split (default is 0.8).
         """
+        nltk.download('stopwords')
+        self.stop_words = set(stopwords.words('english'))
+        self.tfidf_vectorizer = TfidfVectorizer()
         self.dataset_path = dataset_path
         self.train_size = train_size
+        self.size = size
         self._load()
+        
 
     def parser(self, entries : List[str], dataset : str) -> np.ndarray:
         """
@@ -81,7 +90,10 @@ class Loader(object):
                     print(f"skipping entry -> [{entry[:1]}]")
         return data
 
-    def _combine(self, entries : List[str]) -> np.ndarray:
+    def _combine(self, X : np.ndarray, y : np.ndarray) -> np.ndarray:
+        return None
+
+    def _vectorize(self, text : List[str]) -> np.ndarray:
         """
         Combine a list of NumPy arrays into a single NumPy array.
 
@@ -91,7 +103,8 @@ class Loader(object):
         Returns:
             np.ndarray: A single NumPy array containing combined data.
         """
-        return np.concatenate(entries)
+        X = self.tfidf_vectorizer.fit_transform(text)
+        return X
 
     def _load(self):
         """
@@ -99,18 +112,35 @@ class Loader(object):
         """
         csv_files = glob.glob(os.path.join(self.dataset_path, '*.csv'))
         data_list = list()
+        _text_temp = list()
+        _label_temp = list()
         for csv in csv_files:
             if "Chromium" in csv:
                 with open(csv, 'rb') as f:
                     file_bytes = f.read()
                     file_text = file_bytes.decode("utf-8", errors="ignore")
-                    data_list.append(self.parser(file_text.split("\n"), "Chromium"))
+                    if self.size > 0:
+                        parsed_text = self.parser(file_text.split("\n"), "Chromium")[:self.size]
+                    else:
+                        parsed_text = self.parser(file_text.split("\n"), "Chromium")
+                    for text, label in parsed_text:
+                        filtered_text = self._process(text)
+                        _text_temp.append(filtered_text)
+                        _label_temp.append(label)
             elif "OpenStack" in csv:
                 with open(csv, 'rb') as f:
                     file_bytes = f.read()
                     file_text = file_bytes.decode("utf-8", errors="ignore")
-                    data_list.append(self.parser(file_text.split("\n"), "OpenStack"))
-        self.data = self._combine(data_list)
+                    if self.size > 0:
+                        parsed_text = self.parser(file_text.split("\n"), "OpenStack")[:self.size]
+                    else:
+                        parsed_text = self.parser(file_text.split("\n"), "OpenStack")
+                    for text, label in parsed_text:
+                        filtered_text = self._process(text)
+                        _text_temp.append(filtered_text)
+                        _label_temp.append(label)
+        self.X = self._vectorize(_text_temp)
+        self.y = np.array(_label_temp)
 
     def load(self, seed : Optional[int] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
@@ -122,11 +152,27 @@ class Loader(object):
         Returns:
             Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: A tuple containing X_train, X_test, y_train, y_test.
         """
-        X_train, y_train, X_test, y_test = self._split(self.train_size, seed)
-        return X_train, y_train, X_test, y_test
+        _X_train, _X_test, _y_train, _y_test = self._split(self.train_size, seed)
+        return _X_train, _y_train, _X_test, _y_test
 
-    def filter(self) -> None:
-        raise NotImplemented
+    def _process(self, text : str) -> str:
+        """
+        Preprocesses the input text by tokenizing, removing non-alphanumeric tokens, and stopwords.
+
+        Parameters:
+        - text (str): The input text to be preprocessed.
+
+        Returns:
+        - str: The preprocessed text after tokenization, alphanumeric filtering, and stopword removal.
+        """
+        tokens = nltk.word_tokenize(text)
+        filter_tokens = list()
+        for i, word in enumerate(tokens):
+            if word.isalnum() and word not in self.stop_words:
+                filter_tokens.append(word)
+            else:
+                continue
+        return ' '.join(filter_tokens)
     
     def _split(self, train_size: float = 0.8, random_seed: Optional[int] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
@@ -139,8 +185,8 @@ class Loader(object):
         Returns:
             Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: A tuple containing X_train, X_test, y_train, y_test.
         """
-        X = self.data[:, :-1]
-        y = self.data[:, -1].astype(int)
+        X = self.X
+        y = self.y.astype(int)
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1-train_size, random_state=random_seed)
         return X_train, X_test, y_train, y_test
     
@@ -157,5 +203,6 @@ class Loader(object):
         return self.data[idx]
 
 if __name__ == "__main__":
-    loader = Loader(dataset_path)
+    size = 1000 # use tiny dataset to save time debugging
+    loader = Loader(dataset_path, size=size)
     data = loader.load()

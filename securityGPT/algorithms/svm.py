@@ -4,6 +4,7 @@ import os
 from securityGPT.dataset import Loader
 from typing import List, Tuple, Generator
 from sklearn import svm
+from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import accuracy_score, f1_score
 
 import numpy as np
@@ -33,8 +34,11 @@ class SVM:
         Calculate accuracy and F1 score based on true labels and predicted labels.
     """
 
-    def __init__(self, kernel : str = 'linear', C : float = 1.0) -> None:
-        self.svm =  svm.SVC(kernel=kernel, C=C)
+    def __init__(self, kernel : str = 'linear', C : float = 1.0, SGD : bool = False) -> None:
+        if SGD:
+            self.svm = SGDClassifier(loss='hinge', alpha=0.01, max_iter=100)
+        else:
+            self.svm =  svm.SVC(kernel=kernel, C=C)
 
     def train(self, X : np.ndarray, y : np.ndarray):
         """
@@ -96,10 +100,11 @@ class SVM:
 if __name__ == "__main__":
     size = 5000
     ratio = 0.1
+    SGD = True #Use Gradient Descent (better for larger scale datasets)
     dataloader = Loader(dataset_path, size=size)
     X_train, y_train, X_test, y_test, data = dataloader.load(bootstrap=True, ratio=ratio)
     kernel = 'linear'
-    svm = SVM(kernel=kernel)
+    svm = SVM(kernel=kernel, SGD=SGD)
     svm.train(data)
     y_pred = svm.predict(X_test)
     acc, f1 = svm.stats(y_test, y_pred)  # Corrected here

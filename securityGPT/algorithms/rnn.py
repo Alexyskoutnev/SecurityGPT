@@ -20,6 +20,7 @@ class RNN(nn.Module):
         h_t = torch.zeros(self.hidden_size, 1)
 
         for t in range(T):
+            breakpoint()
             x_t = x[t].view(-1, 1)
             h_t = torch.tanh(torch.mm(self.Wx, x_t) + torch.mm(self.Wh, h_t) + self.bh)
             y_t = torch.mm(self.Wy, h_t) + self.by

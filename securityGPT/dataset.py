@@ -31,6 +31,8 @@ def find_indices(text : str , char : str) -> List[int]:
             indices.append(i)
     return indices
 
+
+
 class Loader(object):
     def __init__(self, dataset_path : str, train_size: float = 0.8, size: Optional[int] = 0) -> None:
         """
@@ -142,7 +144,29 @@ class Loader(object):
         self.X = self._vectorize(_text_temp)
         self.y = np.array(_label_temp)
 
-    def load(self, seed : Optional[int] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def random_oversampler(self, X : np.ndarray, y : np.ndarray, target_label : int  = 1, ratio : float = 0.1) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Randomly oversamples the minority class in a dataset.
+
+        Parameters:
+            X (np.ndarray): The feature matrix.
+            y (np.ndarray): The label vector.
+            target_label (int, optional): The label to oversample (default is 1).
+            ratio (float, optional): The desired ratio of the minority class after oversampling (default is 0.1).
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: A tuple containing the oversampled feature matrix and label vector.
+        """
+        X = X.toarray()
+        n_samples = y.shape[0]
+        target_indices = np.where(y == target_label)[0]
+        num_to_sample = int(ratio * n_samples) - target_indices.shape[0]
+        sampled_indices = np.random.choice(target_indices, size=num_to_sample, replace=True)
+        X_resampled = np.vstack((X, X[sampled_indices]))
+        y_resampled = np.hstack((y, y[sampled_indices]))
+        return X_resampled, y_resampled
+
+    def load(self, seed : Optional[int] = None, bootstrap=False) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Load and split the data into training and testing sets.
 
@@ -152,7 +176,7 @@ class Loader(object):
         Returns:
             Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: A tuple containing X_train, X_test, y_train, y_test.
         """
-        _X_train, _X_test, _y_train, _y_test = self._split(self.train_size, seed)
+        _X_train, _X_test, _y_train, _y_test = self._split(self.train_size, seed, bootstrap)
         return _X_train, _y_train, _X_test, _y_test
 
     def _process(self, text : str) -> str:
@@ -174,7 +198,7 @@ class Loader(object):
                 continue
         return ' '.join(filter_tokens)
     
-    def _split(self, train_size: float = 0.8, random_seed: Optional[int] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def _split(self, train_size: float = 0.8, random_seed: Optional[int] = None, bootstrap : bool = False) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Split the data into training and testing sets.
 
@@ -187,6 +211,8 @@ class Loader(object):
         """
         X = self.X
         y = self.y.astype(int)
+        if bootstrap:
+            X, y = self.random_oversampler(X, y)
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1-train_size, random_state=random_seed)
         return X_train, X_test, y_train, y_test
     
@@ -205,4 +231,4 @@ class Loader(object):
 if __name__ == "__main__":
     size = 1000 # use tiny dataset to save time debugging
     loader = Loader(dataset_path, size=size)
-    data = loader.load()
+    data = loader.load(bootstrap=True)

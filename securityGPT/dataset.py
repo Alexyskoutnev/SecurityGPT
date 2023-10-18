@@ -1,7 +1,7 @@
 import sys
 import os
 import glob
-from typing import Optional, Tuple, Union, List
+from typing import Optional, Tuple, Union, List, Generator
 
 import numpy as np
 import pandas as pd
@@ -166,6 +166,30 @@ class Loader(object):
         y_resampled = np.hstack((y, y[sampled_indices]))
         return X_resampled, y_resampled
 
+    def _batch_load(X: np.ndarray, y: np.ndarray, batches: int = 16) -> Generator[Tuple[np.ndarray, np.ndarray], None, None]:
+        """
+        Generate batches of data and labels from the input arrays X and y.
+
+        Parameters:
+        - X (np.ndarray): The feature data as a NumPy array.
+        - y (np.ndarray): The corresponding labels as a NumPy array.
+        - batches (int, optional): The number of batches to generate (default is 16).
+
+        Yields:
+        - Tuple[np.ndarray, np.ndarray]: A tuple containing a batch of feature data and its corresponding labels.
+
+        The function splits the input data X and labels y into batches and yields each batch as a tuple. This is useful for processing large datasets in smaller chunks, reducing memory usage.
+
+        Examples:
+        ```
+        for X_batch, y_batch in _batch_load(X, y, batches=8):
+            # Process the batch of data and labels here
+        ```
+        """
+        batch_size = X.shape[0] // batches
+        for i in range(0, X.shape[0], batch_size):
+            yield X[i:i + batch_size], y[i:i + batch_size]
+
     def load(self, seed : Optional[int] = None, bootstrap=False, ratio=0.1) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Load and split the data into training and testing sets.
@@ -177,6 +201,8 @@ class Loader(object):
             Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: A tuple containing X_train, X_test, y_train, y_test.
         """
         _X_train, _X_test, _y_train, _y_test = self._split(self.train_size, seed, bootstrap, ratio)
+        breakpoint()
+        _X_train, _y_train = self._batch_load(_X_train, _y_train)
         return _X_train, _y_train, _X_test, _y_test
 
     def _process(self, text : str) -> str:

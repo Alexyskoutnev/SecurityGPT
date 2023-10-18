@@ -47,7 +47,8 @@ class SVM:
         Returns:
         - None
         """
-        self.svm.fit(X, y)
+        for X_train, y_train in zip(X, y): 
+            self.svm.fit(X_train, y_train)
 
     def predict(self, x : np.ndarray) -> np.ndarray:
         """
@@ -77,14 +78,16 @@ class SVM:
         return acc, f1
 
 if __name__ == "__main__":
-    size = 10000
+    size = 1000
     ratio = 0.1
     dataloader = Loader(dataset_path, size=size)
     X_train, y_train, X_test, y_test = dataloader.load(bootstrap=True, ratio=ratio)
+    breakpoint()
     kernel = 'linear'
     svm = SVM(kernel=kernel)
-    svm.train(X_train, y_train)
+    svm.train(dataloader)
     y_pred = svm.predict(X_test)
     acc, f1 = svm.stats(y_test, y_pred)  # Corrected here
     print(f"Accuracy: [{acc}] \nF1 Score: [{f1}]")
+    breakpoint()
 

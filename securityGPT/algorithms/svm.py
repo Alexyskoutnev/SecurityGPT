@@ -3,11 +3,13 @@ import os
 
 from securityGPT.dataset import Loader
 from typing import List, Tuple, Generator
+from datetime import datetime
 from sklearn import svm
 from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import accuracy_score, f1_score
 
 import numpy as np
+import joblib
 
 dataset_path = os.path.join("../../data")
 dataset_folder = os.path.join("../../models/svm")
@@ -36,7 +38,7 @@ class SVM:
 
     def __init__(self, kernel : str = 'linear', C : float = 1.0, SGD : bool = False) -> None:
         if SGD:
-            self.svm = SGDClassifier(loss='hinge', alpha=0.01, max_iter=100)
+            self.svm = SGDClassifier(loss='hinge', alpha=0.01, max_iter=500)
         else:
             self.svm =  svm.SVC(kernel=kernel, C=C)
 
@@ -97,6 +99,31 @@ class SVM:
         f1 = f1_score(y_true, y_pred)
         return acc, f1
 
+    def save(self):
+        """
+        Save the trained SVM model to a file with a unique name based on the current date and time.
+
+        Returns:
+        - None
+        """
+        current_datetime = datetime.now()
+        _time = "SVM_" + current_datetime.strftime('%Y%m%d_%H%M') + '.joblib'
+        file = os.path.join(dataset_folder, _time)
+        joblib.dump(self.svm, file)
+        print(f"SVM Model save file -> {file}")
+    
+    def load(self, path : str):
+        """
+        Load a trained SVM model from the specified file path.
+
+        Parameters:
+        - path (str): The path to the saved SVM model file.
+
+        Returns:
+        - None
+        """
+        self.svm = joblib.load(path)
+
 if __name__ == "__main__":
     size = 5000
     ratio = 0.1
@@ -108,5 +135,7 @@ if __name__ == "__main__":
     svm.train(data)
     y_pred = svm.predict(X_test)
     acc, f1 = svm.stats(y_test, y_pred)  # Corrected here
+    svm.save()
     print(f"Accuracy: [{acc}] \nF1 Score: [{f1}]")
+    breakpoint()
 

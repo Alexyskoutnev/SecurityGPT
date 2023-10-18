@@ -166,7 +166,7 @@ class Loader(object):
         y_resampled = np.hstack((y, y[sampled_indices]))
         return X_resampled, y_resampled
 
-    def load(self, seed : Optional[int] = None, bootstrap=False) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def load(self, seed : Optional[int] = None, bootstrap=False, ratio=0.1) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Load and split the data into training and testing sets.
 
@@ -176,7 +176,7 @@ class Loader(object):
         Returns:
             Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: A tuple containing X_train, X_test, y_train, y_test.
         """
-        _X_train, _X_test, _y_train, _y_test = self._split(self.train_size, seed, bootstrap)
+        _X_train, _X_test, _y_train, _y_test = self._split(self.train_size, seed, bootstrap, ratio)
         return _X_train, _y_train, _X_test, _y_test
 
     def _process(self, text : str) -> str:
@@ -198,7 +198,7 @@ class Loader(object):
                 continue
         return ' '.join(filter_tokens)
     
-    def _split(self, train_size: float = 0.8, random_seed: Optional[int] = None, bootstrap : bool = False) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def _split(self, train_size: float = 0.8, random_seed: Optional[int] = None, bootstrap : bool = False, ratio : float = 0.1) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Split the data into training and testing sets.
 
@@ -212,7 +212,7 @@ class Loader(object):
         X = self.X
         y = self.y.astype(int)
         if bootstrap:
-            X, y = self.random_oversampler(X, y)
+            X, y = self.random_oversampler(X, y, ratio=ratio)
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1-train_size, random_state=random_seed)
         return X_train, X_test, y_train, y_test
     

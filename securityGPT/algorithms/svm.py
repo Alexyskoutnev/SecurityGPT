@@ -9,6 +9,7 @@ from sklearn.metrics import accuracy_score, f1_score
 import numpy as np
 
 dataset_path = os.path.join("../../data")
+dataset_folder = os.path.join("../../models/svm")
 
 class SVM:
     """
@@ -76,10 +77,11 @@ class SVM:
         return acc, f1
 
 if __name__ == "__main__":
-    size = 5000
+    size = 10000
+    ratio = 0.1
     dataloader = Loader(dataset_path, size=size)
-    X_train, y_train, X_test, y_test = dataloader.load()
-    kernel = 'rbf'
+    X_train, y_train, X_test, y_test = dataloader.load(bootstrap=True, ratio=ratio)
+    kernel = 'linear'
     svm = SVM(kernel=kernel)
     svm.train(X_train, y_train)
     y_pred = svm.predict(X_test)

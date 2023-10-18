@@ -2,7 +2,7 @@ import sys
 import os
 
 from securityGPT.dataset import Loader
-from typing import List, Tuple
+from typing import List, Tuple, Generator
 from sklearn import svm
 from sklearn.metrics import accuracy_score, f1_score
 
@@ -49,6 +49,22 @@ class SVM:
         """
         for X_train, y_train in zip(X, y): 
             self.svm.fit(X_train, y_train)
+    
+    def train(self, data : Generator[Tuple[np.ndarray, np.ndarray], None, None]) -> None:
+        """
+        Train the SVM model on the provided training data.
+
+        Parameters:
+        - data (np.ndarray) : The training data generator that yields X_train, and y_train.
+
+        Returns:
+        - None
+        """
+        for X_train, y_train in data(): 
+            try: 
+                self.svm.fit(X_train, y_train)
+            except:
+                continue
 
     def predict(self, x : np.ndarray) -> np.ndarray:
         """
@@ -78,16 +94,14 @@ class SVM:
         return acc, f1
 
 if __name__ == "__main__":
-    size = 1000
+    size = 5000
     ratio = 0.1
     dataloader = Loader(dataset_path, size=size)
-    X_train, y_train, X_test, y_test = dataloader.load(bootstrap=True, ratio=ratio)
-    breakpoint()
+    X_train, y_train, X_test, y_test, data = dataloader.load(bootstrap=True, ratio=ratio)
     kernel = 'linear'
     svm = SVM(kernel=kernel)
-    svm.train(dataloader)
+    svm.train(data)
     y_pred = svm.predict(X_test)
     acc, f1 = svm.stats(y_test, y_pred)  # Corrected here
     print(f"Accuracy: [{acc}] \nF1 Score: [{f1}]")
-    breakpoint()
 

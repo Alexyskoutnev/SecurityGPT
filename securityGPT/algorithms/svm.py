@@ -125,7 +125,7 @@ class SVM:
         self.svm = joblib.load(path)
 
 if __name__ == "__main__":
-    size = 5000
+    size = 10000
     ratio = 0.1
     SGD = True #Use Gradient Descent (better for larger scale datasets)
     dataloader = Loader(dataset_path, size=size)
@@ -137,5 +137,4 @@ if __name__ == "__main__":
     acc, f1 = svm.stats(y_test, y_pred)  # Corrected here
     svm.save()
     print(f"Accuracy: [{acc}] \nF1 Score: [{f1}]")
-    breakpoint()
 

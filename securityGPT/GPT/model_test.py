@@ -11,6 +11,7 @@ CONFIG_NAME_GPT = "test_gpt.yml"
 CONFIG_NAME_DATASET = "dataset.yml"
 CONFIG_PATH_GPT = os.path.join("../config", CONFIG_NAME_GPT)
 CONFIG_PATH_DATASET = os.path.join("../config", CONFIG_NAME_DATASET)
+DATASET_PATH = "../../data"
 with open(CONFIG_PATH_GPT, 'r') as cfg_file:
     GPT_config = yaml.safe_load(cfg_file)
 with open(CONFIG_PATH_DATASET, 'r') as cfg_file:
@@ -129,6 +130,31 @@ class GPT(nn.Module):
 
 
 if __name__ == "__main__":
+    """DATA LOADING (TEMP)
+        
+    """
+    dataset_path = os.path.join(DATASET_PATH, 'Shakespeare.txt')
+
+    # wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
+    with open(dataset_path, 'r', encoding='utf-8') as f:
+        text = f.read()
+
+    # here are all the unique characters that occur in this text
+    chars = sorted(list(set(text)))
+    vocab_size = len(chars)
+    # create a mapping from characters to integers
+    stoi = { ch:i for i,ch in enumerate(chars) }
+    itos = { i:ch for i,ch in enumerate(chars) }
+    encode = lambda s: [stoi[c] for c in s] # encoder: take a string, output a list of integers
+    decode = lambda l: ''.join([itos[i] for i in l]) # decoder: take a list of integers, output a string
+
+    # Train and test splits
+    data = torch.tensor(encode(text), dtype=torch.long)
+    n = int(0.9*len(data)) # first 90% will be train, rest val
+    train_data = data[:n]
+    val_data = data[n:]
+    GPT_config['vocab_size'] = vocab_size
+    breakpoint()
         
     model = GPT(config=GPT_config)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

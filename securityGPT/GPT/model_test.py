@@ -12,6 +12,7 @@ CONFIG_NAME_DATASET = "dataset.yml"
 CONFIG_PATH_GPT = os.path.join("../config", CONFIG_NAME_GPT)
 CONFIG_PATH_DATASET = os.path.join("../config", CONFIG_NAME_DATASET)
 DATASET_PATH = "../../data"
+MODEL_SAVE_DIR = "../../models/gpt"
 with open(CONFIG_PATH_GPT, 'r') as cfg_file:
     GPT_config = yaml.safe_load(cfg_file)
 with open(CONFIG_PATH_DATASET, 'r') as cfg_file:
@@ -43,9 +44,9 @@ class Head(nn.Module):
 
 class MultiHeadAttention(nn.Module):
 
-    def __init__(self, num_heads, head_size, n_embed, dropout=0.2):
-        super.__init__()
-        self.heads = nn.ModuleList([Head(head_size, dropout) for i in range(num_heads)])
+    def __init__(self, num_heads, head_size, n_embed, dropout=0.2, block_size=256):
+        super().__init__()
+        self.heads = nn.ModuleList([Head(n_embed, block_size, head_size, dropout) for i in range(num_heads)])
         self.proj = nn.Linear(head_size * num_heads, n_embed)
         self.dropout = nn.Dropout(dropout)
 
@@ -67,12 +68,11 @@ class FF(nn.Module):
     def forward(self, x):
         return self.net(x)
 
-
 class Block(nn.Module):
-    def __init__(self, n_embd, n_head):
+    def __init__(self, n_embd, n_head, dropout=0.2, block_size=256):
         super().__init__()
         head_size = n_embd // n_head
-        self.sa = MultiHeadAttention(n_head, head_size)
+        self.sa = MultiHeadAttention(n_head, head_size, n_embd, dropout, block_size)
         self.ffwd = FF(n_embd)
         self.ln1 = nn.LayerNorm(n_embd)
         self.ln2 = nn.LayerNorm(n_embd)
@@ -86,11 +86,13 @@ class GPT(nn.Module):
     def __init__(self, config=None):
         super().__init__()
         self.config = config
-        self.token_embedding_table = nn.Embedding(config['vocab_size'], config['n_embed'])
-        self.position_embedding_table = nn.Embedding(config['block_size'], config['n_embed'])
-        self.blocks = nn.Sequential(*[Block(config['n_embed'], n_head=config['n_head']) for _ in range(config['n_layer'])])
-        self.ln_f = nn.LayerNorm(config['n_embed'])
-        self.lm_head = nn.Linear(config['n_embed'], config['vocab_size'])
+        self.token_embedding_table = nn.Embedding(config['vocab_size'], config['n_embd'])
+        self.position_embedding_table = nn.Embedding(config['block_size'], config['n_embd'])
+        self.blocks = nn.Sequential(*[Block(n_embd=config['n_embd'], n_head=config['n_head'], 
+                                    dropout=config['dropout'], block_size=config['block_size']) 
+                                    for _ in range(config['n_layers'])])
+        self.ln_f = nn.LayerNorm(config['n_embd'])
+        self.lm_head = nn.Linear(config['n_embd'], config['vocab_size'])
         self.apply(self._init_weights)
 
     def _init_weights(self, module):
@@ -128,7 +130,6 @@ class GPT(nn.Module):
             idx = torch.cat((idx, idx_next), dim=1)
         return idx
 
-
 if __name__ == "__main__":
     """DATA LOADING (TEMP)
         
@@ -154,7 +155,6 @@ if __name__ == "__main__":
     train_data = data[:n]
     val_data = data[n:]
     GPT_config['vocab_size'] = vocab_size
-    breakpoint()
         
     model = GPT(config=GPT_config)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -162,19 +162,18 @@ if __name__ == "__main__":
     m = model.to(device)
     # print the number of parameters in the model
     print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
-
     # create a PyTorch optimizer
-    optimizer = torch.optim.AdamW(model.parameters(), lr=GPT_config['learning_rate'])
+    optimizer = torch.optim.AdamW(model.parameters(), lr=float(GPT_config['learning_rate']))
 
     for iter in range(GPT_config['max_iters']):
 
         # every once in a while evaluate the loss on train and val sets
         if iter % GPT_config['eval_interval'] == 0 or iter == GPT_config['max_iters'] - 1:
-            losses = estimate_loss()
+            losses = estimate_loss(model, GPT_config['eval_iters'], train_data, val_data, GPT_config['block_size'], GPT_config['batch_size'])
             print(f"step {iter}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
 
         # sample a batch of data
-        xb, yb = get_batch('train')
+        xb, yb = get_batch('train', train_data, val_data, GPT_config['block_size'], GPT_config['batch_size'])
 
         # evaluate the loss
         logits, loss = model(xb, yb)
@@ -182,6 +181,7 @@ if __name__ == "__main__":
         loss.backward()
         optimizer.step()
 
+    save_model(model, MODEL_SAVE_DIR)
     # generate from the model
     context = torch.zeros((1, 1), dtype=torch.long, device=device)
-    print(decode(m.generate(context, max_new_tokens=500)[0].tolist()))
+    print(decode(m.generate(context, max_new_tokens=100)[0].tolist()))

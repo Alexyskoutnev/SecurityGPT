@@ -1,0 +1,12 @@
+batch_size : 32
+block_size : 256
+max_iters : 10
+eval_interval  : 500
+learning_rate : 3e-4
+device : 'cpu'
+eval_iters : 200
+n_embd : 384
+n_head : 5
+n_layers : 2
+dropout : 0.2
+seed : 137

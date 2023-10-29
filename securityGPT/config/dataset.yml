@@ -1,2 +1,3 @@
 Chromium : "./data/Chromium.csv"
 OpenStack : "./data/OpenStack.csv"
+TEST : "./data/Shakespeare.txt"

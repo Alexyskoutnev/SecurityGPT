@@ -31,7 +31,13 @@ def find_indices(text : str , char : str) -> List[int]:
             indices.append(i)
     return indices
 
+class LoaderTest(object):
+    """Loader for Shakespeare Dataset
 
+    Args:
+        object (_type_): _description_
+    """
+    pass
 
 class Loader(object):
     def __init__(self, dataset_path : str, train_size: float = 0.8, size: Optional[int] = 0) -> None:

@@ -10,22 +10,20 @@ def get_batch(split, train_data, val_data, block_size, batch_size=64, device='cp
     x, y = x.to(device), y.to(device)
     return x, y
 
-
 @torch.no_grad()
-def estimate_loss(model, eval_iters, train_data, test_data, block_size=256, batch_size=64):
+def estimate_loss(model, eval_iters, train_data, test_data, block_size=256, batch_size=64, device='cpu'):
     out = {}
     model.eval()
     for split in ['train', 'val']:
-        losses = torch.zeros(eval_iters)
+        losses = torch.zeros(eval_iters).to(device)
         for k in range(eval_iters):
-            X, Y = get_batch(split, train_data, test_data, block_size, batch_size)
+            X, Y = get_batch(split, train_data, test_data, block_size, batch_size, device)
             logits, loss = model(X, Y)
             losses[k] = loss.item()
         out[split] = losses.mean()
     model.train()
     return out
-
-
+    
 def save_model(model, save_directory):
     try:
         current_datetime = datetime.datetime.now()

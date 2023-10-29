@@ -4,10 +4,9 @@ import yaml
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+from typing import Union
 
-breakpoint()
 from securityGPT.utils.gpt_utils import *
-breakpoint()
 CONFIG_NAME_GPT = "test_gpt.yml"
 CONFIG_NAME_DATASET = "dataset.yml"
 CONFIG_PATH_GPT = os.path.join("../config", CONFIG_NAME_GPT)
@@ -21,7 +20,16 @@ with open(CONFIG_PATH_DATASET, 'r') as cfg_file:
 
 class Head(nn.Module):
 
-    def __init__(self, n_embed, block_size, head_size, dropout=0.2):
+    def __init__(self, n_embed : int , block_size : int, head_size : int, dropout : float = 0.2) -> None:
+        """
+        Initialize a single head for multi-head attention.
+
+        Args:
+            n_embed (int): The input embedding size.
+            block_size (int): The size of the attention block.
+            head_size (int): The size of the attention head.
+            dropout (float, optional): The dropout rate. Defaults to 0.2.
+        """
         super().__init__()
         self.key = nn.Linear(n_embed, head_size, bias=False)
         self.query = nn.Linear(n_embed, head_size, bias=False)
@@ -29,7 +37,16 @@ class Head(nn.Module):
         self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x):
+    def forward(self, x : torch.Tensor):
+        """
+        Forward pass for the single head in multi-head attention.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, T, C) where B is batch size, T is the sequence length, and C is the number of features.
+
+        Returns:
+            torch.Tensor: The output tensor after applying attention.
+        """
         # 4 x 32 x 4 B 
         B, T, C = x.shape
         k = self.key(x) # 
@@ -45,19 +62,45 @@ class Head(nn.Module):
 
 class MultiHeadAttention(nn.Module):
 
-    def __init__(self, num_heads, head_size, n_embed, dropout=0.2, block_size=256):
+    def __init__(self, num_heads : int, head_size : int, n_embed : int, dropout : float = 0.2, block_size : int = 256):
+        """
+        Initialize a multi-head attention layer.
+
+        Args:
+            num_heads (int): The number of attention heads.
+            head_size (int): The size of each attention head.
+            n_embed (int): The input embedding size.
+            dropout (float, optional): The dropout rate. Defaults to 0.2.
+            block_size (int, optional): The size of the attention block. Defaults to 256.
+        """
         super().__init__()
         self.heads = nn.ModuleList([Head(n_embed, block_size, head_size, dropout) for i in range(num_heads)])
         self.proj = nn.Linear(head_size * num_heads, n_embed)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x):
+    def forward(self, x : torch.Tensor):
+        """
+        Forward pass for the multi-head attention layer.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, T, C) where B is batch size, T is the sequence length, and C is the number of features.
+
+        Returns:
+            torch.Tensor: The output tensor after applying multi-head attention.
+        """
         out = torch.cat([h(x) for h in self.heads], dim=-1)
         out = self.dropout(self.proj(out))
         return out
 
 class FF(nn.Module):
-    def __init__(self, n_embd, dropout=0.2) -> None:
+    def __init__(self, n_embd : int, dropout : float = 0.2) -> None:
+        """
+        Initialize a feedforward neural network layer.
+
+        Args:
+            n_embd (int): The input embedding size.
+            dropout (float, optional): The dropout rate. Defaults to 0.2.
+        """
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(n_embd, 4 * n_embd),
@@ -66,11 +109,20 @@ class FF(nn.Module):
             nn.Dropout(dropout),
         )
 
-    def forward(self, x):
+    def forward(self, x : torch.Tensor) -> torch.tensor:
+        """
+        Forward pass for the feedforward neural network layer.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, T, C) where B is batch size, T is the sequence length, and C is the number of features.
+
+        Returns:
+            torch.Tensor: The output tensor after applying the feedforward neural network layer.
+        """
         return self.net(x)
 
 class Block(nn.Module):
-    def __init__(self, n_embd, n_head, dropout=0.2, block_size=256):
+    def __init__(self, n_embd : int, n_head : int, dropout : float = 0.2, block_size : int = 256) -> None:
         super().__init__()
         head_size = n_embd // n_head
         self.sa = MultiHeadAttention(n_head, head_size, n_embd, dropout, block_size)
@@ -78,13 +130,13 @@ class Block(nn.Module):
         self.ln1 = nn.LayerNorm(n_embd)
         self.ln2 = nn.LayerNorm(n_embd)
     
-    def forward(self, x):
+    def forward(self, x : torch.Tensor) -> torch.Tensor:
         x = x + self.sa(self.ln1(x))
         x = x + self.ffwd(self.ln2(x))
         return x
 
 class GPT(nn.Module):
-    def __init__(self, config=None):
+    def __init__(self, config : dict = None) -> None:
         super().__init__()
         self.config = config
         self.token_embedding_table = nn.Embedding(config['vocab_size'], config['n_embd'])
@@ -96,7 +148,7 @@ class GPT(nn.Module):
         self.lm_head = nn.Linear(config['n_embd'], config['vocab_size'])
         self.apply(self._init_weights)
 
-    def _init_weights(self, module):
+    def _init_weights(self, module : object) -> None:
         if isinstance(module, nn.Linear):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
             if module.bias is not None:
@@ -104,7 +156,17 @@ class GPT(nn.Module):
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
     
-    def forward(self, idx, targets=None):
+    def forward(self, idx : torch.tensor, targets : torch.tensor) -> Union[torch.tensor, torch.tensor]:
+        """
+        Forward pass for the GPT model.
+
+        Args:
+            idx (torch.Tensor): Input tensor representing the text.
+            targets (torch.Tensor): Target tensor for training.
+
+        Returns:
+            Union[torch.Tensor, torch.Tensor]: If targets are None, returns logits; otherwise, returns logits and loss.
+        """
         B, T = idx.shape
         tok_emb = self.token_embedding_table(idx)
         pos_emb = self.position_embedding_table(torch.arange(T, device=self.config['device']))
@@ -121,7 +183,17 @@ class GPT(nn.Module):
             loss = F.cross_entropy(logits, targets)
         return logits, loss
 
-    def generate(self, idx, max_new_tokens):
+    def generate(self, idx : torch.tensor, max_new_tokens : int) -> torch.tensor:
+        """
+        Generate new text using the GPT model.
+
+        Args:
+            idx (torch.Tensor): Input tensor representing the text.
+            max_new_tokens (int): The maximum number of tokens to generate.
+
+        Returns:
+            torch.Tensor: Generated text.
+        """
         for _ in range(max_new_tokens):
             idx_cond = idx[:, -self.config['block_size']:]
             logits, loss = self(idx_cond)
@@ -149,20 +221,18 @@ if __name__ == "__main__":
     itos = { i:ch for i,ch in enumerate(chars) }
     encode = lambda s: [stoi[c] for c in s] # encoder: take a string, output a list of integers
     decode = lambda l: ''.join([itos[i] for i in l]) # decoder: take a list of integers, output a string
-
     # Train and test splits
     data = torch.tensor(encode(text), dtype=torch.long)
     n = int(0.9*len(data)) # first 90% will be train, rest val
     train_data = data[:n]
     val_data = data[n:]
     GPT_config['vocab_size'] = vocab_size
-        
-    model = GPT(config=GPT_config)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = GPT(config=GPT_config).to(device)
+    GPT_config['device'] = device
     print('Using device:', device)
-    m = model.to(device)
     # print the number of parameters in the model
-    print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
+    print(sum(p.numel() for p in model.parameters())/1e6, 'M parameters')
     # create a PyTorch optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=float(GPT_config['learning_rate']))
 
@@ -170,11 +240,11 @@ if __name__ == "__main__":
 
         # every once in a while evaluate the loss on train and val sets
         if iter % GPT_config['eval_interval'] == 0 or iter == GPT_config['max_iters'] - 1:
-            losses = estimate_loss(model, GPT_config['eval_iters'], train_data, val_data, GPT_config['block_size'], GPT_config['batch_size'])
+            losses = estimate_loss(model, GPT_config['eval_iters'], train_data, val_data, GPT_config['block_size'], GPT_config['batch_size'], device=GPT_config['device'])
             print(f"step {iter}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
 
         # sample a batch of data
-        xb, yb = get_batch('train', train_data, val_data, GPT_config['block_size'], GPT_config['batch_size'])
+        xb, yb = get_batch('train', train_data, val_data, GPT_config['block_size'], GPT_config['batch_size'], device=GPT_config['device'])
 
         # evaluate the loss
         logits, loss = model(xb, yb)
@@ -185,4 +255,4 @@ if __name__ == "__main__":
     save_model(model, MODEL_SAVE_DIR)
     # generate from the model
     context = torch.zeros((1, 1), dtype=torch.long, device=device)
-    print(decode(m.generate(context, max_new_tokens=100)[0].tolist()))
+    print(decode(model.generate(context, max_new_tokens=1000)[0].tolist()))

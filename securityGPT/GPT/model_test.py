@@ -5,8 +5,9 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
+breakpoint()
 from securityGPT.utils.gpt_utils import *
-
+breakpoint()
 CONFIG_NAME_GPT = "test_gpt.yml"
 CONFIG_NAME_DATASET = "dataset.yml"
 CONFIG_PATH_GPT = os.path.join("../config", CONFIG_NAME_GPT)

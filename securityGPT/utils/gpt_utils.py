@@ -24,7 +24,7 @@ def estimate_loss(model, eval_iters, train_data, test_data, block_size=256, batc
     model.train()
     return out
     
-def save_model(model, save_directory):
+def save_model(model : torch.nn.Module, save_directory : str):
     try:
         current_datetime = datetime.datetime.now()
         current_date_str = current_datetime.strftime("%Y-%m-%d_%H-%M-%S")
@@ -33,3 +33,6 @@ def save_model(model, save_directory):
         print(f"Model saved to {save_directory}/{save_file}")
     except Exception as e:
         print(f"Model failed to save. Error: {str(e)}")
+
+def load_model(model, model_path : str) -> torch.nn.Module:
+    return model.load_state_dict(torch.load(model_path))

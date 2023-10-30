@@ -7,16 +7,7 @@ from torch.nn import functional as F
 from typing import Union
 
 from securityGPT.utils.gpt_utils import *
-CONFIG_NAME_GPT = "test_gpt.yml"
-CONFIG_NAME_DATASET = "dataset.yml"
-CONFIG_PATH_GPT = os.path.join("../config", CONFIG_NAME_GPT)
-CONFIG_PATH_DATASET = os.path.join("../config", CONFIG_NAME_DATASET)
-DATASET_PATH = "../../data"
-MODEL_SAVE_DIR = "../../models/gpt"
-with open(CONFIG_PATH_GPT, 'r') as cfg_file:
-    GPT_config = yaml.safe_load(cfg_file)
-with open(CONFIG_PATH_DATASET, 'r') as cfg_file:
-    dataset_config = yaml.safe_load(cfg_file)
+from securityGPT.utils.utils import Cfgloader
 
 class Head(nn.Module):
 
@@ -156,7 +147,7 @@ class GPT(nn.Module):
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
     
-    def forward(self, idx : torch.tensor, targets : torch.tensor) -> Union[torch.tensor, torch.tensor]:
+    def forward(self, idx : torch.tensor, targets : torch.tensor = None) -> Union[torch.tensor, torch.tensor]:
         """
         Forward pass for the GPT model.
 
@@ -204,11 +195,16 @@ class GPT(nn.Module):
         return idx
 
 if __name__ == "__main__":
+    CONFIG_NAME_GPT = "test_gpt.yml"
+    CONFIG_NAME_DATASET = "dataset.yml"
+    DATASET_PATH = "../../data"
+    MODEL_SAVE_DIR = "../../models/gpt"
+    cfg_loader = Cfgloader("../config")
+    GPT_config = cfg_loader.load_config("test_gpt.yml")
+    dataset_config = cfg_loader.load_config("dataset.yml")
     """DATA LOADING (TEMP)
-        
     """
     dataset_path = os.path.join(DATASET_PATH, 'Shakespeare.txt')
-
     # wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
     with open(dataset_path, 'r', encoding='utf-8') as f:
         text = f.read()

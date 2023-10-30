@@ -10,3 +10,4 @@ n_head : 8
 n_layers : 8
 dropout : 0.2
 seed : 137
+vocab_size : 65

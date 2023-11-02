@@ -1,54 +1,49 @@
-Package            Version      Editable project location
------------------- ------------ -------------------------------------------
-Brotli             1.1.0
-certifi            2023.7.22
-charset-normalizer 3.3.0
-click              8.1.7
-contourpy          1.1.1
-cycler             0.12.1
-filelock           3.12.4
-fonttools          4.43.1
-gmpy2              2.1.2
-idna               3.4
-Jinja2             3.1.2
-joblib             1.3.2
-kiwisolver         1.4.5
-MarkupSafe         2.1.3
-matplotlib         3.8.0
-mltk               0.0.5
-mpmath             1.3.0
-munkres            1.1.4
-networkx           3.1
-nltk               3.8.1
-numpy              1.26.0
-packaging          23.2
-pandas             2.1.1
-patsy              0.5.3
-Pillow             10.0.1
-pip                23.2.1
-pyparsing          3.1.1
-PySocks            1.7.1
-python-dateutil    2.8.2
-pytz               2023.3.post1
-PyYAML             6.0.1
-regex              2023.10.3
-requests           2.31.0
-scikit-learn       1.3.1
-scipy              1.11.3
-seaborn            0.13.0
-securityGPT        0.0.1        /Users/alexy/Documents/Projects/SecurityGPT
-setuptools         68.2.2
-six                1.16.0
-statsmodels        0.14.0
-sympy              1.12
-threadpoolctl      3.2.0
-torch              2.1.0
-torchaudio         2.1.0
-torchvision        0.16.0
-tornado            6.3.3
-tqdm               4.66.1
-typing_extensions  4.8.0
-tzdata             2023.3
-unicodedata2       15.1.0
-urllib3            2.0.6
-wheel              0.41.2
+Brotli @ file:///Users/runner/miniforge3/conda-bld/brotli-split_1695989934239/work
+certifi==2023.7.22
+charset-normalizer @ file:///home/conda/feedstock_root/build_artifacts/charset-normalizer_1696431134479/work
+click==8.1.7
+contourpy @ file:///Users/runner/miniforge3/conda-bld/contourpy_1695554248815/work
+cycler @ file:///home/conda/feedstock_root/build_artifacts/cycler_1696677705766/work
+filelock @ file:///home/conda/feedstock_root/build_artifacts/filelock_1694629184119/work
+fonttools @ file:///Users/runner/miniforge3/conda-bld/fonttools_1696601358218/work
+gmpy2 @ file:///Users/runner/miniforge3/conda-bld/gmpy2_1666808753481/work
+idna @ file:///home/conda/feedstock_root/build_artifacts/idna_1663625384323/work
+Jinja2 @ file:///home/conda/feedstock_root/build_artifacts/jinja2_1654302431367/work
+joblib @ file:///home/conda/feedstock_root/build_artifacts/joblib_1691577114857/work
+kiwisolver @ file:///Users/runner/miniforge3/conda-bld/kiwisolver_1695379982481/work
+MarkupSafe @ file:///Users/runner/miniforge3/conda-bld/markupsafe_1695367646585/work
+matplotlib @ file:///Users/runner/miniforge3/conda-bld/matplotlib-suite_1695328836565/work
+mltk==0.0.5
+mpmath @ file:///home/conda/feedstock_root/build_artifacts/mpmath_1678228039184/work
+munkres==1.1.4
+networkx @ file:///home/conda/feedstock_root/build_artifacts/networkx_1680692919326/work
+nltk==3.8.1
+numpy @ file:///Users/runner/miniforge3/conda-bld/numpy_1695291065989/work/dist/numpy-1.26.0-cp310-cp310-macosx_11_0_arm64.whl#sha256=3b09a4aea2f802a2bc12443e03ae149ed12c131618139900cc5d73e3da67ebec
+packaging @ file:///home/conda/feedstock_root/build_artifacts/packaging_1696202382185/work
+pandas @ file:///Users/runner/miniforge3/conda-bld/pandas_1696030213981/work
+patsy @ file:///home/conda/feedstock_root/build_artifacts/patsy_1665356157073/work
+Pillow @ file:///Users/runner/miniforge3/conda-bld/pillow_1696149326847/work
+pyparsing @ file:///home/conda/feedstock_root/build_artifacts/pyparsing_1690737849915/work
+PySocks @ file:///home/conda/feedstock_root/build_artifacts/pysocks_1661604839144/work
+python-dateutil @ file:///home/conda/feedstock_root/build_artifacts/python-dateutil_1626286286081/work
+pytz @ file:///home/conda/feedstock_root/build_artifacts/pytz_1693930252784/work
+PyYAML @ file:///Users/runner/miniforge3/conda-bld/pyyaml_1695373498369/work
+regex==2023.10.3
+requests @ file:///home/conda/feedstock_root/build_artifacts/requests_1684774241324/work
+scikit-learn @ file:///Users/runner/miniforge3/conda-bld/scikit-learn_1696574894388/work
+scipy @ file:///Users/runner/miniforge3/conda-bld/scipy-split_1696467658954/work/dist/scipy-1.11.3-cp310-cp310-macosx_11_0_arm64.whl#sha256=725bd7847029b7b51ecf800f9d136562b9d4ea9f46d8165bafe9399a87681a93
+seaborn @ file:///home/conda/feedstock_root/build_artifacts/seaborn-split_1696262444380/work
+-e git+ssh://git@github.com/Alexyskoutnev/SecurityGPT.git@d9528a538f0027a1e84e0341b621a17feadd657f#egg=securityGPT
+six @ file:///home/conda/feedstock_root/build_artifacts/six_1620240208055/work
+statsmodels @ file:///Users/runner/miniforge3/conda-bld/statsmodels_1696548139257/work
+sympy @ file:///home/conda/feedstock_root/build_artifacts/sympy_1684180540116/work
+threadpoolctl @ file:///home/conda/feedstock_root/build_artifacts/threadpoolctl_1689261241048/work
+torch==2.1.0
+torchaudio==2.1.0
+torchvision==0.16.0
+tornado @ file:///Users/runner/miniforge3/conda-bld/tornado_1695373625840/work
+tqdm==4.66.1
+typing_extensions @ file:///home/conda/feedstock_root/build_artifacts/typing_extensions_1695040754690/work
+tzdata @ file:///home/conda/feedstock_root/build_artifacts/python-tzdata_1680081134351/work
+unicodedata2 @ file:///Users/runner/miniforge3/conda-bld/unicodedata2_1695848003431/work
+urllib3 @ file:///home/conda/feedstock_root/build_artifacts/urllib3_1696434355823/work

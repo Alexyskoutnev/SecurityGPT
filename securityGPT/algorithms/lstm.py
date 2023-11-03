@@ -1,10 +1,16 @@
+import os
+import sys
 from typing import Union
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import matplotlib.pyplot as plt
+from securityGPT.dataset import Loader
+from sklearn.metrics import accuracy_score, f1_score
 
+dataset_path = os.path.join("../../data")
+dataset_folder = os.path.join("../../models/svm")
 
 # Generate a synthetic dataset
 def generate_synthetic_data(sequence_length):
@@ -12,6 +18,22 @@ def generate_synthetic_data(sequence_length):
     for i in range(sequence_length):
         data.append(np.sin(0.1 * i) + np.random.normal(0, 0.1))
     return data
+
+class Torch_LSTM_Classifer(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers):
+        super(Torch_LSTM_Classifer, self).__init__()
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+        self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True)
+        self.fc = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, x):
+        h0 = torch.zeros(self.num_layers, x.shape[0], self.hidden_dim)
+        c0 = torch.zeros(self.num_layers, x.shape[0], self.hidden_dim)
+        out, (hn, cn) = self.lstm(x, (h0, c0))
+        out = self.fc(out[:, -1, :])
+        out = torch.sigmoid(out)
+        return out
 
 class LSTM_Block(nn.Module):
     def __init__(self, input_size : int, hidden_size : int) -> None:
@@ -97,6 +119,45 @@ class LSTM(nn.Module):
         out = self.fc(output)
         return out
 
+
+class LSTMClassifer(nn.Module):
+    def __init__(self, input_size : int, hidden_size : int, num_layers : int, output_size : int) -> None:
+        super(LSTMClassifer, self).__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.output_size = output_size
+        self.fc = nn.Linear(hidden_size, output_size)
+        self.lstm_layer = nn.ModuleList([LSTM_Block(input_size, hidden_size) for _ in range(num_layers)])
+
+    def forward(self, x : torch.Tensor) -> torch.Tensor:
+        batch_size, seq_length, input_dim = x.shape
+        for layer in self.lstm_layer:
+            layer.seq_length = seq_length
+        x = x.view(batch_size, seq_length, input_dim)
+        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(x.device)
+        c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(x.device)
+        output = x
+        for i, lstm_i in enumerate(self.lstm_layer):
+            hid = (h0[i], c0[i])
+            x, _ = lstm_i(output, *hid)
+            if i < len(self.lstm_layer) - 1:
+                output = x.view(batch_size, seq_length, -1)
+            else:
+                output = x
+        out = self.fc(output[:, -1, :])
+        out = torch.sigmoid(out)
+        return out
+
+    def train(self, data):
+        breakpoint()
+        for X_train, y_train in data(): 
+            breakpoint()
+            try: 
+                self.svm.fit(X_train, y_train)
+            except:
+                continue
+
 class Dataset(object):
     def __init__(self, seq_length = 100, batch_size=32) -> None:
         self.seq_length = seq_length
@@ -136,13 +197,49 @@ def plot(model : LSTM, dataset : object) -> None:
     plt.show()
         
 if __name__ == "__main__":
-    input_size = 1
-    hidden_size = 64
-    batch_size = 1
-    num_layers = 1
-    output_size = 1
-    epochs = 100
-    dataset = Dataset(seq_length=1000, batch_size=batch_size)
-    lstm = LSTM(input_size, hidden_size, num_layers, output_size)
-    train(lstm, dataset, epochs=epochs)
-    plot(lstm, dataset)
+    size = 10000
+    ratio = 0.1
+    dataloader = Loader(dataset_path, size=size, torch=True, word_embedding=True)
+    X_train, y_train, X_test, y_test, data = dataloader.load(bootstrap=True, ratio=ratio)
+    # input_size = 1
+    # hidden_size = 64
+    # batch_size = 1
+    # num_layers = 1
+    # output_size = 2
+    # epochs = 100
+    # lstm = LSTMClassifer(input_size, hidden_size, num_layers, output_size)
+    # # train(lstm, dataloader, epochs=epochs)
+    # breakpoint()
+    # lstm.train(data)
+
+    input_dim = X_train.shape[2]
+    hidden_dim = 64
+    output_dim = 2  # Adjust based on the number of classes (e.g., binary classification)
+    num_layers = 2
+    lstm = Torch_LSTM_Classifer(input_dim, hidden_dim, output_dim, num_layers)
+
+    # Define loss and optimizer
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(lstm.parameters(), lr=0.001)
+
+    # Train the model
+    num_epochs = 10
+    for epoch in range(num_epochs):
+        for X_train, y_train in data():
+            # breakpoint()
+            optimizer.zero_grad()
+            outputs = lstm(X_train)
+            max_prob_indices = torch.argmax(outputs, dim=1)
+            loss = criterion(outputs, y_train)
+            loss.backward()
+            optimizer.step()
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+
+    # Make predictions on the test set
+    with torch.no_grad():
+        test_outputs = lstm(X_test)
+        predicted_labels = torch.argmax(test_outputs, 1)
+
+    # Calculate accuracy
+    accuracy = accuracy_score(y_test, predicted_labels.numpy())
+    print(f'Test Accuracy: {accuracy:.2f}')

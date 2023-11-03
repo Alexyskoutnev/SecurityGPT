@@ -6,9 +6,11 @@ from typing import Optional, Tuple, Union, List, Generator
 import numpy as np
 import pandas as pd
 import nltk
+import torch
 from nltk.corpus import stopwords
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
+from gensim.models import Word2Vec
 
 dataset_path = os.path.join("../data")
 encoding = "utf-8"
@@ -40,7 +42,7 @@ class LoaderTest(object):
     pass
 
 class Loader(object):
-    def __init__(self, dataset_path : str, train_size: float = 0.8, size: Optional[int] = 0) -> None:
+    def __init__(self, dataset_path : str, train_size: float = 0.8, size: Optional[int] = 0, torch : bool = False, word_embedding : bool = False) -> None:
         """
         Initialize the Loader object.
 
@@ -54,6 +56,11 @@ class Loader(object):
         self.dataset_path = dataset_path
         self.train_size = train_size
         self.size = size
+        self.torch = torch
+        self.word_embedding = word_embedding
+        self.embedding_dim = 100
+        self.max_sentence_length = 1000
+        self.embedding_model = None
         self._load()
         
 
@@ -147,8 +154,51 @@ class Loader(object):
                         filtered_text = self._process(text)
                         _text_temp.append(filtered_text)
                         _label_temp.append(label)
-        self.X = self._vectorize(_text_temp)
-        self.y = np.array(_label_temp)
+        if self.word_embedding:
+            _text_temp_split = [sentence.split(" ") for sentence in _text_temp]
+            self.embedding_model = Word2Vec(_text_temp_split, vector_size=self.embedding_dim, window=5, min_count=1, sg=0)
+            self.X = self._vectorize_embeddings(_text_temp_split)
+            self.y = np.array(_label_temp)
+        else:
+            self.X = self._vectorize(_text_temp)
+            self.y = np.array(_label_temp)
+
+    def _padding(self, sentence : list) -> np.array:
+        """
+        Pad or truncate a sentence to a fixed length.
+
+        Parameters:
+        - sentence (np.array): Array of word vectors for a sentence.
+
+        Returns:
+        - Padded or truncated sentence with shape (max_sentence_length, embedding_dim).
+        """
+        _padded_data = np.zeros((self.max_sentence_length, self.embedding_dim))
+        _data = np.array(sentence[:self.max_sentence_length])
+        seq_length, emb_dim = _data.shape
+        _padded_data[:seq_length, :] = _data
+        return _padded_data
+
+    def _vectorize_embeddings(self, data : list[str] ) -> np.array:
+        """
+        Vectorize a list of sentences using Word2Vec embeddings.
+
+        Parameters:
+        - data (List[str]): List of input sentences.
+
+        Returns:
+        - Vectorized sentences as a NumPy array with padding/truncation.
+        """
+        vectorized_sentences = []
+        for sentence in data:
+            sentence_vectors = []
+            for word in sentence:
+                if word in self.embedding_model.wv:
+                    word_vector = self.embedding_model.wv[word]
+                    sentence_vectors.append(word_vector)
+            padded_sentence_vector = self._padding(sentence_vectors)
+            vectorized_sentences.append(padded_sentence_vector)
+        return np.array(vectorized_sentences, dtype=np.float32)
 
     def random_oversampler(self, X : np.ndarray, y : np.ndarray, target_label : int  = 1, ratio : float = 0.1) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -163,7 +213,7 @@ class Loader(object):
         Returns:
             Tuple[np.ndarray, np.ndarray]: A tuple containing the oversampled feature matrix and label vector.
         """
-        X = X.toarray()
+        # X = X.toarray()
         n_samples = y.shape[0]
         target_indices = np.where(y == target_label)[0]
         num_to_sample = int(ratio * n_samples) - target_indices.shape[0]
@@ -192,9 +242,13 @@ class Loader(object):
         """
         batch_size = self._X_train.shape[0] // batches
         for i in range(0, self._X_train.shape[0], batch_size):
-            yield self._X_train[i:i + batch_size], self._y_train[i:i + batch_size]
+            if self.torch:
+                yield torch.from_numpy(self._X_train[i:i + batch_size]), torch.from_numpy(self._y_train[i:i + batch_size])
+            else:
+                yield self._X_train[i:i + batch_size], self._y_train[i:i + batch_size]
 
-    def load(self, seed : Optional[int] = None, bootstrap : bool = False, ratio : float = 0.1, batches : int = 17) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+
+    def load(self, seed : Optional[int] = None, bootstrap : bool = False, ratio : float = 0.1, batches : int = 16) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Load and split the data into training and testing sets.
 
@@ -205,8 +259,11 @@ class Loader(object):
             Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: A tuple containing X_train, X_test, y_train, y_test.
         """
         _X_train, _X_test, _y_train, _y_test = self._split(self.train_size, seed, bootstrap, ratio)
-        self._X_train = _X_train
+        self._X_train = _X_train.astype(np.float32)
         self._y_train = _y_train
+        if self.torch:
+            _X_test = torch.from_numpy(_X_test.astype(np.float32))
+            _y_test = torch.from_numpy(_y_test)
         self.batches = batches
         data = self._batch_load
         return _X_train, _y_train, _X_test, _y_test, data

@@ -4,6 +4,7 @@ from typing import Union
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.init as init
 import numpy as np
 import matplotlib.pyplot as plt
 from securityGPT.dataset import Loader
@@ -19,12 +20,19 @@ def generate_synthetic_data(sequence_length):
         data.append(np.sin(0.1 * i) + np.random.normal(0, 0.1))
     return data
 
+def normalized(model):
+    for layer in model._all_weights:
+        for param in layer:
+            if 'weight' in param:
+                init.xavier_normal_(getattr(model, param))
+
 class Torch_LSTM_Classifer(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim, num_layers):
+    def __init__(self, input_dim, hidden_dim, num_layers, output_dim):
         super(Torch_LSTM_Classifer, self).__init__()
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True)
+        normalized(self.lstm)
         self.fc = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, x):
@@ -191,21 +199,22 @@ def plot(model : LSTM, dataset : object) -> None:
 if __name__ == "__main__":
     size = 1000
     ratio = 0.3
-    batch_size = 16
+    EVAL_STEP = 10
+    batch_size = 32
     dataloader = Loader(dataset_path, size=size, torch=True, word_embedding=True, batch_size=batch_size)
     X_train, y_train, X_test, y_test, data = dataloader.load(bootstrap=True, ratio=ratio)
     input_dim = X_train.shape[2]
     hidden_dim = 64
     output_dim = 2  # Adjust based on the number of classes (e.g., binary classification)
-    num_layers = 1
-    lstm = LSTMClassifer(input_dim, hidden_dim, num_layers, output_dim)
+    num_layers = 2
+    lstm = Torch_LSTM_Classifer(input_dim, hidden_dim, num_layers, output_dim)
 
     # Define loss and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(lstm.parameters(), lr=0.001)
 
     # Train the model
-    num_epochs = 1000
+    num_epochs = 100
     for epoch in range(num_epochs):
         for X_train, y_train in data():
             optimizer.zero_grad()
@@ -214,16 +223,17 @@ if __name__ == "__main__":
             loss = criterion(outputs, y_train)
             loss.backward()
             optimizer.step()
+        if epoch % EVAL_STEP == 0:
             print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+             # Make predictions on the test set
+            with torch.no_grad():
+                test_outputs = lstm(X_test)
+                predicted_labels = torch.argmax(test_outputs, 1)
+            # Calculate accuracy
+            accuracy = accuracy_score(y_test, predicted_labels.numpy())
+            print(f'Test Accuracy: {accuracy:.2f}')
+            f1 = f1_score(y_test, predicted_labels.numpy())
+            print(f'F1 Score: {f1:.2f}')
 
-    # Make predictions on the test set
-    with torch.no_grad():
-        test_outputs = lstm(X_test)
-        predicted_labels = torch.argmax(test_outputs, 1)
-        # breakpoint()
 
-    # Calculate accuracy
-    accuracy = accuracy_score(y_test, predicted_labels.numpy())
-    print(f'Test Accuracy: {accuracy:.2f}')
-    f1 = f1_score(y_test, predicted_labels.numpy())
-    print(f'F1 Score: {f1:.2f}')
+        

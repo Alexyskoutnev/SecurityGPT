@@ -42,7 +42,7 @@ class LoaderTest(object):
     pass
 
 class Loader(object):
-    def __init__(self, dataset_path : str, train_size: float = 0.8, size: Optional[int] = 0, torch : bool = False, word_embedding : bool = False) -> None:
+    def __init__(self, dataset_path : str, train_size: float = 0.8, size: Optional[int] = 0, torch : bool = False, word_embedding : bool = False, batch_size : int = 32) -> None:
         """
         Initialize the Loader object.
 
@@ -58,12 +58,12 @@ class Loader(object):
         self.size = size
         self.torch = torch
         self.word_embedding = word_embedding
-        self.embedding_dim = 100
-        self.max_sentence_length = 1000
+        self.embedding_dim = 200
+        self.max_sentence_length = 200
         self.embedding_model = None
+        self.batch_size = batch_size
         self._load()
         
-
     def parser(self, entries : List[str], dataset : str) -> np.ndarray:
         """
         Parse the dataset entries and return a NumPy array.
@@ -124,6 +124,20 @@ class Loader(object):
     def _load(self):
         """
         Load and combine data from CSV files in the dataset path.
+
+        Reads CSV files in the specified dataset path, extracts text and labels,
+        and combines the data. If word embeddings are enabled, it optionally trains
+        a Word2Vec model on the preprocessed text data.
+
+        Returns:
+            None: The function stores the processed data and labels in self.X and self.y.
+
+        Notes:
+            - The function assumes that CSV files contain text data labeled with "Chromium" or "OpenStack."
+            - The function uses a parser specified during object initialization to extract text and labels.
+            - The preprocessing step involves filtering and processing the extracted text.
+            - If word embeddings are enabled, the function trains a Word2Vec model on the preprocessed text data.
+
         """
         csv_files = glob.glob(os.path.join(self.dataset_path, '*.csv'))
         data_list = list()
@@ -181,13 +195,16 @@ class Loader(object):
 
     def _vectorize_embeddings(self, data : list[str] ) -> np.array:
         """
-        Vectorize a list of sentences using Word2Vec embeddings.
+        Vectorize a list of sentences using Word2Vec embeddings to sequence-based 
+        encoding.
 
         Parameters:
-        - data (List[str]): List of input sentences.
+        - data (List[str]): List of input sentences. 
+          For example [['Testing', 'chromium', 'id', 'works', '2', 'problem', '1', '2', '3'], [...]]
 
         Returns:
-        - Vectorized sentences as a NumPy array with padding/truncation.
+        - Vectorized sentences as a NumPy array with padding/truncation 
+          as size [dataset_size, length_of_max_sentence_embedding, word_vec_dim].
         """
         vectorized_sentences = []
         for sentence in data:
@@ -213,7 +230,8 @@ class Loader(object):
         Returns:
             Tuple[np.ndarray, np.ndarray]: A tuple containing the oversampled feature matrix and label vector.
         """
-        # X = X.toarray()
+        if not self.word_embedding:
+            X = X.toarray()
         n_samples = y.shape[0]
         target_indices = np.where(y == target_label)[0]
         num_to_sample = int(ratio * n_samples) - target_indices.shape[0]
@@ -222,30 +240,31 @@ class Loader(object):
         y_resampled = np.hstack((y, y[sampled_indices]))
         return X_resampled, y_resampled
     
-    def _batch_load(self, batches : int = 10) -> Generator[Tuple[np.ndarray, np.ndarray], None, None]:
+    def _batch_load(self) -> Generator[Tuple[np.ndarray, np.ndarray], None, None]:
         """
         Generate batches of feature data and corresponding labels from the internal training dataset.
-
-        Parameters:
-        - batches (int, optional): The number of batches to generate (default is 8).
 
         Yields:
         - Tuple[np.ndarray, np.ndarray]: A tuple containing a batch of feature data and its corresponding labels.
 
-        This method splits the internal training data (_X_train and _y_train) into smaller batches, and it yields each batch as a tuple. It is useful for processing large datasets in smaller chunks, which can reduce memory usage and improve efficiency.
+        This method splits the internal training data (_X_train and _y_train) into smaller batches,
+        and it yields each batch as a tuple. It is useful for processing large datasets in smaller chunks,
+        which can reduce memory usage and improve efficiency.
 
-        Examples:
-        ```
-        for X_batch, y_batch in self._batch_load(batches=4):
-            # Process the batch of data and labels here
-        ```
+        Yields:
+            Tuple[np.ndarray, np.ndarray]: A tuple containing a batch of feature data and its corresponding labels.
+            
+        Raises:
+            ValueError: If the specified batch size is less than or equal to 0.
+
         """
-        batch_size = self._X_train.shape[0] // batches
-        for i in range(0, self._X_train.shape[0], batch_size):
+        if self.batch_size <= 0:
+            raise ValueError("The batch parameter should be greater than zero.")
+        for i in range(0, self._X_train.shape[0], self.batch_size):
             if self.torch:
-                yield torch.from_numpy(self._X_train[i:i + batch_size]), torch.from_numpy(self._y_train[i:i + batch_size])
+                yield torch.from_numpy(self._X_train[i:i + self.batch_size]), torch.from_numpy(self._y_train[i:i + self.batch_size])
             else:
-                yield self._X_train[i:i + batch_size], self._y_train[i:i + batch_size]
+                yield self._X_train[i:i + self.batch_size], self._y_train[i:i + self.batch_size]
 
 
     def load(self, seed : Optional[int] = None, bootstrap : bool = False, ratio : float = 0.1, batches : int = 16) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -261,12 +280,14 @@ class Loader(object):
         _X_train, _X_test, _y_train, _y_test = self._split(self.train_size, seed, bootstrap, ratio)
         self._X_train = _X_train.astype(np.float32)
         self._y_train = _y_train
+        if not self.embedding_model:
+            self._X_train = self._X_train[:, np.newaxis, :]
+            _X_test = _X_test[:, np.newaxis, :]
         if self.torch:
             _X_test = torch.from_numpy(_X_test.astype(np.float32))
             _y_test = torch.from_numpy(_y_test)
-        self.batches = batches
         data = self._batch_load
-        return _X_train, _y_train, _X_test, _y_test, data
+        return self._X_train, self._y_train, _X_test, _y_test, data
 
     def _process(self, text : str) -> str:
         """

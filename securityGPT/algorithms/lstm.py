@@ -140,6 +140,7 @@ class LSTMClassifer(nn.Module):
         output = x
         for i, lstm_i in enumerate(self.lstm_layer):
             hid = (h0[i], c0[i])
+            # breakpoint()
             x, _ = lstm_i(output, *hid)
             if i < len(self.lstm_layer) - 1:
                 output = x.view(batch_size, seq_length, -1)
@@ -148,15 +149,6 @@ class LSTMClassifer(nn.Module):
         out = self.fc(output[:, -1, :])
         out = torch.sigmoid(out)
         return out
-
-    def train(self, data):
-        breakpoint()
-        for X_train, y_train in data(): 
-            breakpoint()
-            try: 
-                self.svm.fit(X_train, y_train)
-            except:
-                continue
 
 class Dataset(object):
     def __init__(self, seq_length = 100, batch_size=32) -> None:
@@ -197,36 +189,25 @@ def plot(model : LSTM, dataset : object) -> None:
     plt.show()
         
 if __name__ == "__main__":
-    size = 10000
-    ratio = 0.1
-    dataloader = Loader(dataset_path, size=size, torch=True, word_embedding=True)
+    size = 1000
+    ratio = 0.3
+    batch_size = 16
+    dataloader = Loader(dataset_path, size=size, torch=True, word_embedding=True, batch_size=batch_size)
     X_train, y_train, X_test, y_test, data = dataloader.load(bootstrap=True, ratio=ratio)
-    # input_size = 1
-    # hidden_size = 64
-    # batch_size = 1
-    # num_layers = 1
-    # output_size = 2
-    # epochs = 100
-    # lstm = LSTMClassifer(input_size, hidden_size, num_layers, output_size)
-    # # train(lstm, dataloader, epochs=epochs)
-    # breakpoint()
-    # lstm.train(data)
-
     input_dim = X_train.shape[2]
     hidden_dim = 64
     output_dim = 2  # Adjust based on the number of classes (e.g., binary classification)
-    num_layers = 2
-    lstm = Torch_LSTM_Classifer(input_dim, hidden_dim, output_dim, num_layers)
+    num_layers = 1
+    lstm = LSTMClassifer(input_dim, hidden_dim, num_layers, output_dim)
 
     # Define loss and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(lstm.parameters(), lr=0.001)
 
     # Train the model
-    num_epochs = 10
+    num_epochs = 1000
     for epoch in range(num_epochs):
         for X_train, y_train in data():
-            # breakpoint()
             optimizer.zero_grad()
             outputs = lstm(X_train)
             max_prob_indices = torch.argmax(outputs, dim=1)
@@ -239,7 +220,10 @@ if __name__ == "__main__":
     with torch.no_grad():
         test_outputs = lstm(X_test)
         predicted_labels = torch.argmax(test_outputs, 1)
+        # breakpoint()
 
     # Calculate accuracy
     accuracy = accuracy_score(y_test, predicted_labels.numpy())
     print(f'Test Accuracy: {accuracy:.2f}')
+    f1 = f1_score(y_test, predicted_labels.numpy())
+    print(f'F1 Score: {f1:.2f}')

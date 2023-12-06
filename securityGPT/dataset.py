@@ -10,6 +10,7 @@ import torch
 from nltk.corpus import stopwords
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
+from nltk.tokenize import word_tokenize
 from gensim.models import Word2Vec
 
 dataset_path = os.path.join("../data")
@@ -42,7 +43,10 @@ class LoaderTest(object):
     pass
 
 class Loader(object):
-    def __init__(self, dataset_path : str, train_size: float = 0.8, size: Optional[int] = 0, torch : bool = False, word_embedding : bool = False, batch_size : int = 32) -> None:
+    def __init__(self, dataset_path : str, train_size: float = 0.8,
+                size: Optional[int] = 0, torch : bool = False, 
+                word_embedding : bool = False, batch_size : int = 32,
+                padding_bool : bool = True) -> None:
         """
         Initialize the Loader object.
 
@@ -62,6 +66,7 @@ class Loader(object):
         self.max_sentence_length = 200
         self.embedding_model = None
         self.batch_size = batch_size
+        self.padding_bool = padding_bool
         self._load()
         
     def parser(self, entries : List[str], dataset : str) -> np.ndarray:
@@ -108,6 +113,10 @@ class Loader(object):
     def _combine(self, X : np.ndarray, y : np.ndarray) -> np.ndarray:
         return None
 
+    def _sentence_embedding(self, tokenized_sentence):
+        breakpoint()
+        return np.array([self.embedding_model.wv[word] for word in tokenized_sentence], dtype=np.float32)
+
     def _vectorize(self, text : List[str]) -> np.ndarray:
         """
         Combine a list of NumPy arrays into a single NumPy array.
@@ -118,6 +127,7 @@ class Loader(object):
         Returns:
             np.ndarray: A single NumPy array containing combined data.
         """
+       
         X = self.tfidf_vectorizer.fit_transform(text)
         return X
 
@@ -168,14 +178,20 @@ class Loader(object):
                         filtered_text = self._process(text)
                         _text_temp.append(filtered_text)
                         _label_temp.append(label)
-        if self.word_embedding:
+        if self.word_embedding and self.padding_bool:
             _text_temp_split = [sentence.split(" ") for sentence in _text_temp]
             self.embedding_model = Word2Vec(_text_temp_split, vector_size=self.embedding_dim, window=5, min_count=1, sg=0)
             self.X = self._vectorize_embeddings(_text_temp_split)
             self.y = np.array(_label_temp)
+        elif self.word_embedding and not self.padding_bool: #Doesn't seem to work -> REMOVE LATER
+            _text_temp_tokens = [word_tokenize(sentence.lower()) for sentence in _text_temp]
+            self.embedding_model = Word2Vec(sentences=_text_temp_tokens, vector_size=self.embedding_dim, window=5, min_count=1, sg=0)
+            self.X = self._sentence_embedding(_text_temp_tokens)
+            self.y = np.array(_label_temp)
         else:
             self.X = self._vectorize(_text_temp)
             self.y = np.array(_label_temp)
+
 
     def _padding(self, sentence : list) -> np.array:
         """

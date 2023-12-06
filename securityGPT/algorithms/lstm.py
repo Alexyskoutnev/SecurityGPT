@@ -205,7 +205,7 @@ if __name__ == "__main__":
     X_train, y_train, X_test, y_test, data = dataloader.load(bootstrap=True, ratio=ratio)
     input_dim = X_train.shape[2]
     hidden_dim = 64
-    output_dim = 2  # Adjust based on the number of classes (e.g., binary classification)
+    output_dim = 2 
     num_layers = 2
     lstm = Torch_LSTM_Classifer(input_dim, hidden_dim, num_layers, output_dim)
 

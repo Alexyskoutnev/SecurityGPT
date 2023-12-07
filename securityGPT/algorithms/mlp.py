@@ -57,9 +57,9 @@ class MLP(nn.Module):
         return self.net(x)
 
 if __name__ == "__main__":
-    size = 0
-    ratio = 0.3
-    EVAL_STEP = 10
+    size = 10_000
+    ratio = 0.2
+    EVAL_STEP = 5
     batch_size = 64
     dataloader = Loader(dataset_path, size=size, torch=True,
                         word_embedding=False, batch_size=batch_size,
@@ -81,7 +81,6 @@ if __name__ == "__main__":
             loss = criterion(outputs, _y_train.float())
             loss.backward()
             optimizer.step()
-            breakpoint()
         if epoch % EVAL_STEP == 0:
             print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
             with torch.no_grad():

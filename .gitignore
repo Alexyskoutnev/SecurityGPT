@@ -134,3 +134,6 @@ __pyinstaller/
 
 /test
 *.pth
+*/*.txt
+*.txt.*
+*.out

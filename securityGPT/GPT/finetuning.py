@@ -3,6 +3,7 @@ import os
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
+from datetime import datetime
 from torch.utils.data import Dataset, DataLoader
 from sklearn.metrics import classification_report, accuracy_score, f1_score
 from transformers import (set_seed,
@@ -16,21 +17,32 @@ from transformers import (set_seed,
 from securityGPT.dataset import DataTorch
 from typing import Union, Optional
 
-def plot_loss(data):
+dataset_path = os.path.join("./data")
+dataset_output = os.path.join("./data/graphs/")
+SAVE_DIR = "./models/"
+
+def gpt_save(model, type="gpt"):
+    time = str(datetime.now())
+    path = os.path.join(SAVE_DIR, type, time + "_" +  type + ".pth")
+    torch.save(model.state_dict(), path)
+
+def plot_loss(data : dict):
+    path = os.path.join(dataset_output)
     for key in data.keys():
         epochs = np.arange(len(data[key]))
         plt.plot(epochs, data[key], label='Line Graph')
         plt.xlabel('Epochs Loss')
         plt.ylabel('Loss')
-        plt.show()
+        plt.savefig(path + "_" + str(key) + "_gpt_" + ".png")
 
-def plot_acc(data):
+def plot_acc(data : dict):
+    path = os.path.join(dataset_output)
     for key in data.keys():
         epochs = np.arange(len(data[key]))
         plt.plot(epochs, data[key], label='Line Graph')
         plt.xlabel('Epochs Loss')
         plt.ylabel('Accurancy')
-        plt.show()
+        plt.savefig(path + str(key) + "_gpt_" + ".png")
 
 def train(model, dataloader : DataLoader, optimizer_ : torch.optim, scheduler_, device_):
   r"""
@@ -76,16 +88,11 @@ def train(model, dataloader : DataLoader, optimizer_ : torch.optim, scheduler_, 
     loss.backward()
     torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
     optimizer_.step()
-    # Update the learning rate.
     scheduler_.step()
-    # Move logits and labels to CPU
     logits = logits.detach().cpu().numpy()
-    # Convert these logits to list of predicted labels values.
     predictions_labels += logits.argmax(axis=-1).flatten().tolist()
-  # Calculate the average loss over the training data.
   avg_epoch_loss = total_loss / len(dataloader)
   return true_labels, predictions_labels, avg_epoch_loss
-
 
 class Gpt2ClassificationCollator(object):
     r"""

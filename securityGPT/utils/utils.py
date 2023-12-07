@@ -1,7 +1,16 @@
+import torch
+import torch.nn as nn
+from datetime import datetime
 import os
 import yaml
 
 CONFIG_DIR = "./securityGPT/config"
+SAVE_DIR = "./models/"
+
+def save_model(model, type=""):
+    time = str(datetime.now())
+    path = os.path.join(SAVE_DIR, type, time + "_" +  type + ".pth")
+    torch.save(model.state_dict(), path)
 
 class Cfgloader(object):
 

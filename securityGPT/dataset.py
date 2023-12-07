@@ -68,7 +68,7 @@ class Loader(object):
         self.embedding_model = None
         self.batch_size = batch_size
         self.padding_bool = padding_bool
-        self.raw = True
+        self.raw = False
         self._load()
         
     def parser(self, entries : List[str], dataset : str) -> np.ndarray:
@@ -128,7 +128,6 @@ class Loader(object):
         Returns:
             np.ndarray: A single NumPy array containing combined data.
         """
-       
         X = self.tfidf_vectorizer.fit_transform(text)
         return X
 

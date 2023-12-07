@@ -1,7 +1,7 @@
 import os
 import argparse
 
-from securityGPT.GPT.model_test import GPT
+from securityGPT.GPT.model_gpt import GPT
 from securityGPT.utils.gpt_utils import *
 from securityGPT.utils.utils import Cfgloader
 

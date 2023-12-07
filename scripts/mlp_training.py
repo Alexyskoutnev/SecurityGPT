@@ -19,21 +19,23 @@ def plot_loss(data : dict):
     for key in data.keys():
         epochs = np.arange(len(data[key]))
         plt.plot(epochs, data[key], label='Line Graph')
-        plt.xlabel('Epochs Loss')
+        plt.xlabel('Epochs')
         plt.ylabel('Loss')
         plt.savefig(path + str(key) + "_mlp_" + ".png")
+        plt.close()
 
 def plot_acc(data : dict):
     path = os.path.join(dataset_output)
     for key in data.keys():
         epochs = np.arange(len(data[key]))
         plt.plot(epochs, data[key], label='Line Graph')
-        plt.xlabel('Epochs Loss')
+        plt.xlabel('Epochs')
         plt.ylabel('Accurancy (%)')
         plt.savefig(path + str(key) + "_mlp_" + ".png")
+        plt.close()
 
 def main():
-    size = 20_000
+    size = 10_000
     ratio = 0.2
     EVAL_STEP = 5
     batch_size = 64

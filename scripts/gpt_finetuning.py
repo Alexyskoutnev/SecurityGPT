@@ -20,9 +20,9 @@ from typing import Union, Optional
 def main():
     #============== Config =============
     set_seed(np.random.randint(0, 10000))
-    epochs = 1
-    batch_size = 32
-    max_length = 256
+    epochs = 5
+    batch_size = 16
+    max_length = 50
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model_name_or_path = 'gpt2'
     labels_ids = {'0': 0, '1': 1}
@@ -44,7 +44,7 @@ def main():
                                                           labels_encoder=labels_ids, 
                                                           max_sequence_len=max_length)
     dataset_path = os.path.join("./data")
-    size = 1000
+    size = 100
     #============== Loading Dataset ============== 
     train_dataset = DataTorch(dataset_path, size=size, use_tokenizer=None,
                               bootstrap=True, ratio=0.2, train_data=True)

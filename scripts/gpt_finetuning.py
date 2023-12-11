@@ -44,7 +44,7 @@ def main():
                                                           labels_encoder=labels_ids, 
                                                           max_sequence_len=max_length)
     dataset_path = os.path.join("./data")
-    size = 100
+    size = 1000
     #============== Loading Dataset ============== 
     train_dataset = DataTorch(dataset_path, size=size, use_tokenizer=None,
                               bootstrap=True, ratio=0.2, train_data=True)

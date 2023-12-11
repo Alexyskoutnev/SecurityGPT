@@ -12,7 +12,8 @@ from nltk.corpus import stopwords
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk.tokenize import word_tokenize
-from gensim.models import Word2Vec
+from gensim.models import Word2Vec, Doc2Vec
+import gensim
 
 dataset_path = os.path.join("../data")
 encoding = "utf-8"
@@ -46,8 +47,9 @@ class LoaderTest(object):
 class Loader(object):
     def __init__(self, dataset_path : str, train_size: float = 0.8,
                 size: Optional[int] = 0, torch : bool = False, 
-                word2vec : bool = False, tfidf : bool = False, 
-                batch_size : int = 32, padding_bool : bool = True) -> None:
+                word2vec : bool = False, tfidf : bool = False,
+                doc2vec : bool = False, batch_size : int = 32, 
+                padding_bool : bool = True) -> None:
         """
         Initialize the Loader object.
 
@@ -64,6 +66,7 @@ class Loader(object):
         self.torch = torch
         self.word2vec = word2vec
         self.tfidf = tfidf
+        self.doc2vec = doc2vec
         self.embedding_dim = 200
         self.max_sentence_length = 200
         self.embedding_model = None
@@ -116,8 +119,24 @@ class Loader(object):
     def _combine(self, X : np.ndarray, y : np.ndarray) -> np.ndarray:
         return None
 
-    def _sentence_embedding(self, tokenized_sentence):
-        return np.array([self.embedding_model.wv[word] for word in tokenized_sentence], dtype=np.float32)
+    def _sentence_embedding(self, tokenized_sentence : list[str]) -> np.ndarray:
+        """
+        Generate a sentence embedding using the underlying Doc2Vec model.
+
+        Parameters:
+        - tokenized_sentence (list[str]): A list of tokenized words in the sentence.
+
+        Returns:
+        - np.ndarray: A numpy array representing the sentence embedding.
+        Each element in the array corresponds to the embedding vector for a token in the sentence.
+        The resulting array has a shape of (len(tokenized_sentence), embedding_dimension).
+
+        Note:
+        - This function assumes that the `embedding_model` attribute is an instance of Doc2Vec,
+        and the `infer_vector` method is available for generating word embeddings.
+        Make sure that the model has been appropriately trained before calling this function.
+        """
+        return np.array([self.embedding_model.infer_vector(doc) for doc in tokenized_sentence], dtype=np.float32)
 
     def _vectorize(self, text : List[str]) -> np.ndarray:
         """
@@ -184,9 +203,11 @@ class Loader(object):
             self.embedding_model = Word2Vec(_text_temp_split, vector_size=self.embedding_dim, window=5, min_count=1, sg=0)
             self.X = self._vectorize_embeddings(_text_temp_split)
             self.y = np.array(_label_temp)
-        elif self.word2vec and not self.padding_bool: #Doesn't seem to work -> REMOVE LATER
+        elif self.doc2vec:
             _text_temp_tokens = [word_tokenize(sentence.lower()) for sentence in _text_temp]
-            self.embedding_model = Word2Vec(sentences=_text_temp_tokens, vector_size=self.embedding_dim, window=5, min_count=1, sg=0)
+            tagged_data = [gensim.models.doc2vec.TaggedDocument(words=doc, tags=[str(i)]) for i, doc in enumerate(_text_temp_tokens)]
+            self.embedding_model = gensim.models.doc2vec.Doc2Vec(vector_size=self.embedding_dim, min_count=2, epochs=40)
+            self.embedding_model.build_vocab(tagged_data)
             self.X = self._sentence_embedding(_text_temp_tokens)
             self.y = np.array(_label_temp)
         elif self.tfidf:

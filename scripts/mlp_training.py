@@ -35,26 +35,26 @@ def plot_acc(data : dict):
         plt.close()
 
 def main():
-    size = 10_000
-    ratio = 0.2
-    EVAL_STEP = 5
+    size = 1000
+    ratio = 0.1
+    EVAL_STEP = 2
     batch_size = 64
     dataloader = Loader(dataset_path, size=size, torch=True,
-                        word_embedding=False, batch_size=batch_size,
-                        padding_bool=False)
+                        batch_size=batch_size, doc2vec=True,
+                        padding_bool=True)
     X_train, y_train, X_test, y_test, data = dataloader.load(bootstrap=True, ratio=ratio)
-    input_dim = X_train.shape[2]
+    input_dim = X_train.shape[1]
     mlp = MLP(input_dim, output_size=1)
 
     # Define loss and optimizer
     criterion = nn.BCEWithLogitsLoss()
-    optimizer = optim.Adam(mlp.parameters(), lr=0.0001)
+    optimizer = optim.Adam(mlp.parameters(), lr=0.001)
 
     all_loss = {'train_loss':[], 'testing_loss':[]}
     all_acc = {'train_acc':[], 'testing_acc':[]}
     all_f1 = {"train_f1" : [], "testing_f1" : []}
     # Train the model
-    num_epochs = 10
+    num_epochs = 50
     for epoch in range(num_epochs):
         for _X_train, _y_train in data():
             optimizer.zero_grad()
@@ -66,7 +66,7 @@ def main():
             print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
             with torch.no_grad():
                 test_outputs = torch.squeeze(torch.sigmoid(mlp(X_test)), dim=1)
-                predicted_labels = torch.squeeze((test_outputs >= 0.5).int(), dim=1)  # Convert probabilities to binary labels (0 or 1)
+                predicted_labels = (test_outputs >= 0.5).int()  # Convert probabilities to binary labels (0 or 1)
             # Calculate accuracy and F1 score
             accuracy = accuracy_score(y_test, predicted_labels.numpy())
             f1 = f1_score(y_test, predicted_labels.numpy())

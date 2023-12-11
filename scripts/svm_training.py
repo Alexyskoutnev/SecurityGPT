@@ -15,7 +15,7 @@ import joblib
 dataset_path = os.path.join("../data")
 
 def main():
-    size = 100
+    size = 1000
     ratio = 0.1
     SGD = True #Use Gradient Descent (better for larger scale datasets)
     stats = {"Accurancy" : [], "F1" : []}

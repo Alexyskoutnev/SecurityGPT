@@ -125,10 +125,10 @@ class SVM:
         self.svm = joblib.load(path)
 
 if __name__ == "__main__":
-    size = 10000
+    size = 1000
     ratio = 0.1
     SGD = True #Use Gradient Descent (better for larger scale datasets)
-    dataloader = Loader(dataset_path, size=size)
+    dataloader = Loader(dataset_path, size=size, tfidf=True)
     X_train, y_train, X_test, y_test, data = dataloader.load(bootstrap=True, ratio=ratio)
     kernel = 'linear'
     svm = SVM(kernel=kernel, SGD=SGD)

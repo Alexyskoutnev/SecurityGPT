@@ -46,8 +46,8 @@ class LoaderTest(object):
 class Loader(object):
     def __init__(self, dataset_path : str, train_size: float = 0.8,
                 size: Optional[int] = 0, torch : bool = False, 
-                word_embedding : bool = False, batch_size : int = 32,
-                padding_bool : bool = True) -> None:
+                word2vec : bool = False, tfidf : bool = False, 
+                batch_size : int = 32, padding_bool : bool = True) -> None:
         """
         Initialize the Loader object.
 
@@ -62,7 +62,8 @@ class Loader(object):
         self.train_size = train_size
         self.size = size
         self.torch = torch
-        self.word_embedding = word_embedding
+        self.word2vec = word2vec
+        self.tfidf = tfidf
         self.embedding_dim = 200
         self.max_sentence_length = 200
         self.embedding_model = None
@@ -178,22 +179,23 @@ class Loader(object):
                         filtered_text = self._process(text)
                         _text_temp.append(filtered_text)
                         _label_temp.append(label)
-        if self.word_embedding and self.padding_bool:
+        if self.word2vec and self.padding_bool:
             _text_temp_split = [sentence.split(" ") for sentence in _text_temp]
             self.embedding_model = Word2Vec(_text_temp_split, vector_size=self.embedding_dim, window=5, min_count=1, sg=0)
             self.X = self._vectorize_embeddings(_text_temp_split)
             self.y = np.array(_label_temp)
-        elif self.word_embedding and not self.padding_bool: #Doesn't seem to work -> REMOVE LATER
+        elif self.word2vec and not self.padding_bool: #Doesn't seem to work -> REMOVE LATER
             _text_temp_tokens = [word_tokenize(sentence.lower()) for sentence in _text_temp]
             self.embedding_model = Word2Vec(sentences=_text_temp_tokens, vector_size=self.embedding_dim, window=5, min_count=1, sg=0)
             self.X = self._sentence_embedding(_text_temp_tokens)
             self.y = np.array(_label_temp)
-        elif self.raw:
-            self.X = _text_temp
-            self.y = np.array(_label_temp)
-        else:
+        elif self.tfidf:
             self.X = self._vectorize(_text_temp)
             self.y = np.array(_label_temp)
+        else:
+            self.X = _text_temp
+            self.y = np.array(_label_temp)
+       
 
 
     def _padding(self, sentence : list) -> np.array:
@@ -236,7 +238,10 @@ class Loader(object):
             vectorized_sentences.append(padded_sentence_vector)
         return np.array(vectorized_sentences, dtype=np.float32)
 
-    def random_oversampler(self, X : np.ndarray, y : np.ndarray, target_label : int  = 1, ratio : float = 0.1) -> Tuple[np.ndarray, np.ndarray]:
+    def random_oversampler(self, X : np.ndarray, 
+                                 y : np.ndarray, 
+                                 target_label : int  = 1, 
+                                 ratio : float = 0.1) -> Tuple[np.ndarray, np.ndarray]:
         """
         Randomly oversamples the minority class in a dataset.
 
@@ -249,7 +254,7 @@ class Loader(object):
         Returns:
             Tuple[np.ndarray, np.ndarray]: A tuple containing the oversampled feature matrix and label vector.
         """
-        if not self.word_embedding:
+        if self.tfidf:
             X = X.toarray()
         n_samples = y.shape[0]
         target_indices = np.where(y == target_label)[0]
@@ -286,7 +291,10 @@ class Loader(object):
                 yield self._X_train[i:i + self.batch_size], self._y_train[i:i + self.batch_size]
 
 
-    def load(self, seed : Optional[int] = None, bootstrap : bool = False, ratio : float = 0.1, batches : int = 16) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def load(self, seed : Optional[int] = None, 
+                   bootstrap : bool = False, 
+                   ratio : float = 0.1, 
+                   batches : int = 16) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Load and split the data into training and testing sets.
 
@@ -299,7 +307,7 @@ class Loader(object):
         _X_train, _X_test, _y_train, _y_test = self._split(self.train_size, seed, bootstrap, ratio)
         self._X_train = _X_train.astype(np.float32)
         self._y_train = _y_train
-        if not self.embedding_model:
+        if not self.embedding_model and not self.tfidf:
             self._X_train = self._X_train[:, np.newaxis, :]
             _X_test = _X_test[:, np.newaxis, :]
         if self.torch:

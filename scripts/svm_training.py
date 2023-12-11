@@ -12,24 +12,29 @@ from sklearn.metrics import accuracy_score, f1_score
 import numpy as np
 import joblib
 
-dataset_path = os.path.join("./data")
-dataset_folder = os.path.join("./models/svm")
+dataset_path = os.path.join("../data")
 
 def main():
-    size = 1000
-    ratio = 0.2
+    size = 100
+    ratio = 0.1
     SGD = True #Use Gradient Descent (better for larger scale datasets)
-    dataloader = Loader(dataset_path, size=size)
-    X_train, y_train, X_test, y_test, data = dataloader.load(bootstrap=True, ratio=ratio)
-    kernel = 'linear'
-    svm = SVM(kernel=kernel, SGD=SGD)
-    svm.train(data)
-    X_test = np.squeeze(X_test, axis=1)
-    breakpoint()
-    y_pred = svm.predict(X_test)
-    acc, f1 = svm.stats(y_test, y_pred)  # Corrected here
-    svm.save()
-    print(f"Accuracy: [{acc}] \nF1 Score: [{f1}]")
+    stats = {"Accurancy" : [], "F1" : []}
+    trails = 20
+    for i in range(trails):
+        try:
+            dataloader = Loader(dataset_path, size=size, tfidf=True)
+            X_train, y_train, X_test, y_test, data = dataloader.load(bootstrap=True, ratio=ratio)
+            kernel = 'linear'
+            svm = SVM(kernel=kernel, SGD=SGD)
+            svm.train(data)
+            y_pred = svm.predict(X_test)
+            acc, f1 = svm.stats(y_test, y_pred)  # Corrected here
+            stats['Accurancy'].append(acc)
+            stats['F1'].append(f1)
+            print(f"Accuracy: [{acc}] \nF1 Score: [{f1}]")
+        except:
+            pass
+    print(f"Mean {trails} Scores \t | Accuracy : {np.mean(stats['Accurancy'])} \t | F1 Score : {np.mean(stats['F1'])}")
 
 if __name__ == "__main__":
     main()

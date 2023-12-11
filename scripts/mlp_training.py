@@ -35,7 +35,7 @@ def plot_acc(data : dict):
         plt.close()
 
 def main():
-    size = 1000
+    size = 500
     ratio = 0.1
     EVAL_STEP = 2
     batch_size = 64

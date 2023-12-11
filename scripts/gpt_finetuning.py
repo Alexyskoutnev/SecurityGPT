@@ -20,9 +20,9 @@ from typing import Union, Optional
 def main():
     #============== Config =============
     set_seed(np.random.randint(0, 10000))
-    epochs = 5
+    epochs = 10
     batch_size = 16
-    max_length = 50
+    max_length = 100
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model_name_or_path = 'gpt2'
     labels_ids = {'0': 0, '1': 1}
